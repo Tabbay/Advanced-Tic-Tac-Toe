@@ -1,3 +1,6 @@
+// up to 7 tictactoe game.cpp : This file contains the 'main' function. Program execution begins and ends there.
+//
+
 #include <iostream>
 #include <string.h>
 #include <string>
@@ -15,9 +18,11 @@ void drawBoard(int ,int , string[][MAX_NO_OF_COLS]);
 bool checkName(string);
 void formatName(string);
 string setfirstname(string);
-int convertRowMove(string);
-int convertColMove(string);
+int convertRowMove(string, int);
+int convertColMove(string, int);
 bool gameResultWin(int, int, string[][MAX_NO_OF_COLS], int, int);
+void printStats(int, int, string, int, int, int);
+
 
 
 struct database {
@@ -38,9 +43,11 @@ int main()
   int numofppl    = 0;
   int whoWon      = 0;
   int whoStarts   = 0;
+  int whoNext     = 0;
+  int longestNamelength = 0;
   string playersfullname[numofppl];
 	char letters[7] = { 'a','b','c','d','e','f','g' };
-	database players[7];
+	database players[8];
 
 	cout << "How many people are playing? (Min:2,Max:7)" << endl;
 	cin >> numofppl;
@@ -48,50 +55,61 @@ int main()
 
   while (numofppl > 7 || numofppl < 2)
   {
-
     cout << "Invalid response" << endl;
     cout << "How many people are playing? (Min:2,Max:7)" << endl;
 	  cin >> numofppl;
+    getline(cin,dummyspace);
     
   }
 
 	for (int i = 1; i <= numofppl; i++)
   {
-
 		players[i].piece = letters[i - 1];
 	}
 
 	for (int i = 1; i <= numofppl; i ++)
-  {
-    
-      cout << "Enter your first and last name Player(" << players[whoStarts + i].piece << ") ";
+  {   
+      cout << "Enter your first and last name Player(" 
+      << players[whoStarts + i].piece << ") ";
       getline(cin,players[whoStarts + i].fullname);
       
-
         while (checkName(players[whoStarts + i].fullname) == false)
         {
-
           int length = players[whoStarts + i].fullname.length();
           string newstring = "";
           cout << "Invalid name! Only use letters." << endl;
           cout << "Try again." << endl;
+          cout << "Enter your first and last name Player(" 
+               << players[whoStarts + i].piece << ") ";
           getline(cin,newstring);
           players[whoStarts + i].fullname.replace(0,length,newstring);
       }
 	}
 
   
-	for (int i =1; i <= numofppl;i++)
+	for (int i = 1; i <= numofppl; i++)
   {
+    players[whoStarts + i].firstName 
+    = setfirstname(players[whoStarts + i].fullname);
+  }
 
-    players[whoStarts + i].firstName = setfirstname(players[whoStarts + i].fullname);
-    
+  for(int i = 1; i <= numofppl; i++)
+  {
+    if(i + 1 == numofppl + 1)
+    {
+      break;
+    }
+
+    if(players[i].fullname.length() > players[i + 1].fullname.length())
+    {
+     
+      longestNamelength = players[i].fullname.length();
+    }
   }
 	
 	
 	
-	do {
-		
+	do {		
 		int rows, columns = 0;
 		bool dimenvalid = true;
     
@@ -99,250 +117,394 @@ int main()
 		
     for (int i = 0; i < 11; i++)
     {
-
       for (int j = 0; j< 15; j++)
-      {
-        
+      {      
         spaces[i][j] = " ";
       }
     }
     
-		while (dimenvalid)
+    do
     {
-
-			dimenvalid = false;
-			cout << "\nPlease enter the dimension of the board. (Min: 3 x 3, Max: 11 x 15) \n";
-			cout << "Enter the number of rows -> ";
+      cout << "\nPlease enter the dimensions of the board."
+           << " (Min: 3 x 3, Max: 11 x 15) \n";
+			cout << "\nEnter the number of rows -> ";
 			cin >> rows; cout << endl;
 			cout << "Enter the number of columns -> ";
 			cin >> columns; cout << endl;
-
-			if ((rows < 3 || columns > 15))
+      if((rows < 3 || rows > 11) || (columns < 3 || columns > 15))
       {
-
-				cout << "Invalid dimensions!" << endl;
-				dimenvalid = true;
-			}
+        cout << "Invalid dimensions!" << endl;
+      }
       
-			drawBoard(rows, columns, spaces);
 
-		}
+    }while ((rows < 3 || rows > 11) || (columns < 3 || columns > 15));
+    
+    drawBoard(rows, columns, spaces);
+		
     bool gameOver = false;
     while(gameOver == false){
 
       for (int i = 1; i <= numofppl; i++)
       {
         string move;
-        formatName(players[whoStarts + i].firstName);
-        cout << " (" << players[whoStarts + i].piece << ")" << ", enter your move -> " << endl;
+        formatName(players[whoStarts + i + whoNext].firstName);
+        cout << " (" << players[whoStarts + i + whoNext].piece << ")" 
+        << ", enter your move -> " << endl;
         cin >> move;
 
-        int rowindex = convertRowMove(move);
-        int colindex = convertColMove(move);
-        cout << rowindex << " " << colindex << endl;
-        spaces[colindex - 1][rowindex] = players[whoStarts + i].piece;
-        drawBoard(rows, columns, spaces);
+        int rowindex = convertRowMove(move, rows);
+        int colindex = convertColMove(move, columns);
+
+        while(spaces[colindex - 1][rowindex] != " ")
+        {
+          cout << "Spot taken! Enter new move." << endl;
+          formatName(players[whoStarts + i + whoNext].firstName);
+          cout << " (" << players[whoStarts + i + whoNext].piece << ")" 
+          << ", enter your move -> " << endl;
+          cin >> move;
+
+          rowindex = convertRowMove(move, rows);
+          colindex = convertColMove(move, columns);
+
+          if(spaces[colindex - 1][rowindex] == " ")
+          {
+            break;
+          }
+        }
+
+        spaces[colindex - 1][rowindex] 
+        = players[whoStarts + i + whoNext].piece;
 
         int countspaces = 0;
 
-        bool gameWinner = gameResultWin(colindex-1, rowindex, spaces, rows, columns);
+        bool gameWinner = gameResultWin(colindex-1, rowindex,                                     spaces, rows, columns);
 
         if (!gameWinner)
         {
-
           for (int r = 0; r <= rows; r++)
           {
-            
             for (int c = 0; c <= columns; c++)
             {
-
               if (spaces[c][r]== " ")
               {
-
                 countspaces += 1;
               } 
             }
           }
-          if (countspaces == 0)
+          if (countspaces == 7)
           {
-
             gamecounter += 1;
             for (int i = 1; i <= numofppl; i++)
             {
-
-              players[whoStarts + i].draw += 1;
+              players[whoStarts + i + whoNext].draw += 1;
             }
-            if (whoStarts + i == numofppl)
+            if (whoStarts == numofppl)
             {
-
-              whoStarts = 1;
+              drawBoard(rows, columns, spaces);
+              whoStarts = 0;
+              whoNext   = 0;
               whoWon = numofppl;
            }
            else
-           {
-            
-              whoWon = whoStarts + i;
-              whoStarts = whoWon + 1;
-          }
+           {  
+              drawBoard(rows, columns, spaces); 
+              whoNext = whoStarts + 1;  
+           } 
             gameOver = true;
             break;
-          
+          }
+          else
+          {
+            drawBoard(rows, columns, spaces);
+            if(whoStarts + i == numofppl)
+            {
+              whoStarts = 0;
+            }
+          }
+        }
+     if(gameWinner)
+     {
+      formatName(players[whoStarts + i + whoNext].firstName); 
+      cout << ", congratulations! You won you sly dawg" << endl;
+      gamecounter += 1;
+      
+      if (whoStarts + i == numofppl)
+        {
+          whoWon = numofppl;
+          whoStarts = 0;
+          players[whoWon].wins += 1;
+          whoNext = 0;
         }
         else
         {
-
-          if (whoStarts + i == numofppl)
+          whoWon = whoStarts + i;
+          players[whoWon].wins += 1;
+          whoNext = whoWon;
+          for(int l = 0; l <= numofppl; l++)
           {
+            if(l == whoWon){
 
-            whoStarts = 1;
-            whoWon = numofppl;
-          }else
-          {
-
-            whoWon = whoStarts + i;
-            whoStarts = whoWon + 1;
+            }
+            else
+            {
+              players[l].loss += 1;
+            }
           }
-          cout << players[whoStarts + i].firstName << ", congratulations! You won you sly dawg." << endl;
         }
-      }
+        gameOver = true;
+        break;
+     }
+        
+      
      if (i == numofppl)
      {
-
-       i = 1;
+       i = 0;
+       whoNext = 0;
      }
     }
-     cout << "Would you like to play another game? (Y/N)" << endl;
+     cout << "\nGames Played: " << gamecounter << endl;
+     cout << endl;
+     for(int j = 0; j <= longestNamelength + 1; j++)
+     {
+       cout << " ";
+     }
+     cout << " ------ " << "------ " << "------ " << endl;
+     for(int j = 0; j <= longestNamelength + 1; j++)
+     {
+       cout << " ";
+     }
+     cout << "|  WIN | LOSS | DRAW |" << endl;
+     for(int j = 0; j <= longestNamelength + 1; j++)
+     {
+       cout << " ";
+     }
+     cout << " ------ " << "------ " << "------ " << endl;
+
+     for(int j = 1; j <= numofppl; j++)
+     { 
+      printStats(longestNamelength, players[j].fullname.length(),
+                players[j].fullname, players[j].wins,
+                  players[j].loss, players[j].draw);        
+     }
+     
+     cout << "\nWould you like to play another game? (Y/N)" << endl;
      cin >> playAgain;
    }
-  }while (playAgain == 'y'||'Y');
+  }while ((playAgain == 'y' || 'Y') && (gamecounter != 1001));
   
 }
 
+/*=========================================================
+                                                        
+ Prints the stats of the player with the correct format.
+                                                        
+=========================================================*/
+void printStats(int longestname, int namelength, string name,
+                int wins, int losses, int draws)
+{
+  for(int j = 0; j <= longestname - namelength; j++)
+     {
+       cout << " ";
+     }
+  formatName(name); cout << " |";
+  if(wins < 10)
+  {
+    cout << "    " << wins << " |";
+  }
+  else if(wins < 100)
+  {
+    cout << "   " << wins << " |";
+  }
+  else
+  {
+    cout << "  " << wins << " |";
+  }
+
+  if(losses < 10)
+  {
+    cout << "    " << losses << " |";
+  }
+  else if(losses < 100)
+  {
+    cout << "   " << losses << " |";
+  }
+  else
+  {
+    cout << "  " << losses << " |";
+  }
+
+  if(draws < 10)
+  {
+    cout << "    " << draws << " | " << endl;
+  }
+  else if(draws < 100)
+  {
+    cout << "   " << draws << " | " << endl;
+  }
+  else
+  {
+    cout << "  " << draws << " | " << endl;
+  }
+  for(int j = 0; j <= longestname + 1; j++)
+  {
+    cout << " ";
+  }
+  cout << " ------ " << "------ " << "------ " << endl;
+}
+
+/*=========================================================
+                                                        
+ Prints the gameboard with the winning marks in uppercase
+ and returns bool if player has won.
+                                                        
+=========================================================*/
 bool gameResultWin(int col, int row, string spaces[][15],
                    int rowSize, int colSize)
 {
   char winspaces;
-  if ((spaces[row][col] == spaces[row][col + 1] &&
-       spaces[row][col + 1] == spaces[row][col + 2]))
+  if ((spaces[col][row] == spaces[col + 1][row] &&
+       spaces[col + 1][row] == spaces[col + 2][row]))
   {
-      winspaces = spaces[row][col][0] -= 32;
-      spaces[row][col]     = winspaces;
-      spaces[row][col + 1] = winspaces;
-      spaces[row][col + 2] = winspaces;
+      winspaces = spaces[col][row][0] -= 32;
+      spaces[col][row]     = winspaces;
+      spaces[col + 1][row] = winspaces;
+      spaces[col + 2][row] = winspaces;
       drawBoard(rowSize, colSize, spaces);
       return  true;
   }
-  else if ((spaces[row][col] == spaces[row][col - 1]) &&
-           (spaces[row][col - 1] == spaces[row][col - 2]))
+  else if ((spaces[col][row] == spaces[col - 1][row]) &&
+           (spaces[col - 1][row] == spaces[col - 2][row]))
   {
-      winspaces = spaces[row][col][0] -= 32;
-      spaces[row][col]     = winspaces;
-      spaces[row][col - 1] = winspaces;
-      spaces[row][col - 2] = winspaces;
+      winspaces = spaces[col][row][0] -= 32;
+      spaces[col][row]     = winspaces;
+      spaces[col - 1][row] = winspaces;
+      spaces[col - 2][row] = winspaces;
       drawBoard(rowSize, colSize, spaces);
       return true;
   }
-  else if ((spaces[row][col] == spaces[row - 1][col]) && 
-          (spaces[row - 1][col] == spaces[row - 2][col]))
+  else if ((spaces[col][row] == spaces[col][row - 1]) && 
+          (spaces[col][row - 1] == spaces[col][row - 2]))
   {
-      winspaces = spaces[row][col][0] -= 32;
-      spaces[row][col]     = winspaces;
-      spaces[row - 1][col] = winspaces;
-      spaces[row - 2][col] = winspaces;
+      winspaces = spaces[col][row][0] -= 32;
+      spaces[col][row]     = winspaces;
+      spaces[col][row - 1] = winspaces;
+      spaces[col][row - 2] = winspaces;
       drawBoard(rowSize, colSize, spaces);
       return true;
   }
-  else if (((spaces[row][col] == spaces[row + 1][col]) &&
-            (spaces[row + 1][col] == spaces[row + 2][col])))
+  else if (((spaces[col][row] == spaces[col][row + 1]) &&
+            (spaces[col][row + 1] == spaces[col][row + 2])))
   {
-      winspaces = spaces[row][col][0] -= 32;
+      winspaces = spaces[col][row][0] -= 32;
       spaces[row][col]     = winspaces;
       spaces[row + 1][col] = winspaces;
       spaces[row + 2][col] = winspaces;
       drawBoard(rowSize, colSize, spaces);
       return true;
   }
-  else if ((spaces[row][col] == spaces[row - 1][col - 1]) &&
-           (spaces[row - 1][col - 1] == spaces[row - 2][col - 2]))
+  else if ((spaces[col][row] == spaces[col - 1][row - 1]) &&
+           (spaces[col - 1][row - 1] == spaces[col - 2][row - 2]))
   {
-    winspaces = spaces[row][col][0] -= 32;
-    spaces[row][col]         = winspaces;
-    spaces[row - 1][col - 1] = winspaces;
-    spaces[row - 2][col - 2] = winspaces;
+    winspaces = spaces[col][row][0] -= 32;
+    spaces[col][row]         = winspaces;
+    spaces[col - 1][row - 1] = winspaces;
+    spaces[col - 2][row - 2] = winspaces;
     drawBoard(rowSize, colSize, spaces);
     return true;
   }
-  else if ((spaces[row][col] == spaces[row + 1][col + 1]) &&
-           (spaces[row + 1][col + 1] == spaces[row + 2][col + 2]))
+  else if ((spaces[col][row] == spaces[col + 1][row + 1]) &&
+           (spaces[col + 1][row + 1] == spaces[col + 2][row + 2]))
   {
-    winspaces = spaces[row][col][0] -= 32;
-    spaces[row][col]         = winspaces;
-    spaces[row + 1][col + 1] = winspaces;
-    spaces[row + 2][col + 2] = winspaces;
-    drawBoard(rowSize, colSize, spaces);
-    return true;
+      winspaces = spaces[col][row][0] -= 32;
+      spaces[col][row]         = winspaces;
+      spaces[col + 1][row + 1] = winspaces;
+      spaces[col + 2][row + 2] = winspaces;
+      drawBoard(rowSize, colSize, spaces);
+      return true;
   }
-  else if ((spaces[row][col] == spaces[row - 1][col + 1]) &&
-           (spaces[row - 1][col + 1] == spaces[row - 2][col + 2]))
+  else if ((spaces[col][row] == spaces[col + 1][row - 1]) &&
+           (spaces[col + 1][row - 1] == spaces[col + 2][row - 2]))
   {
-    winspaces = spaces[row][col][0] -= 32;
-    spaces[row][col]         = winspaces;
-    spaces[row - 1][col + 1] = winspaces;
-    spaces[row - 2][col + 2] = winspaces;
-    drawBoard(rowSize, colSize, spaces);
-    return true;
+      winspaces = spaces[col][row][0] -= 32;
+      spaces[col][row]         = winspaces;
+      spaces[col + 1][row - 1] = winspaces;
+      spaces[col + 2][row - 2] = winspaces;
+      drawBoard(rowSize, colSize, spaces);
+      return true;
   }
-  else if ((spaces[row][col] == spaces[row + 1][col - 1]) &&
-           (spaces[row + 1][col - 1] == spaces[row + 2][col - 2]))
+  else if ((spaces[col][row] == spaces[col - 1][row + 1]) &&
+           (spaces[col - 1][row + 1] == spaces[col - 2][row + 2]))
   {
-    winspaces = spaces[row][col][0] -= 32;
-    spaces[row][col]         = winspaces;
-    spaces[row + 1][col - 1] = winspaces;
-    spaces[row + 2][col - 2] = winspaces;
-    drawBoard(rowSize, colSize, spaces);
-    return true;
+      winspaces = spaces[col][row][0] -= 32;
+      spaces[col][row]         = winspaces;
+      spaces[col - 1][row + 1] = winspaces;
+      spaces[col - 2][row + 2] = winspaces;
+      drawBoard(rowSize, colSize, spaces);
+      return true;
   }
   return false;
-  
-  
+  cout << "Game will continue" << endl;
 } 
 
-int convertRowMove(string move)
-{
-
+/*=========================================================
+                                                        
+ Converts the row move to check if it is valid and 
+ returns it.
+                                                        
+=========================================================*/
+int convertRowMove(string move, int maxRows)
+{ 
   if (move.length()==2||3)
-  {
-    
+  {   
     if ((isalpha(move[0])) && (isdigit(move[1])))
     {
-
       int rowmove =0; 
       int columnmove = stoi(move.substr(1));
       char x = tolower(move[0]);
       rowmove = (x - 97);
+      if(rowmove + 1 > maxRows)
+      {
+        string newrow;
+        cout << "Invalid Row! Enter new row." << endl;
+        cin >> newrow;
+        return convertRowMove(newrow, maxRows) + 2;
+      }
       return rowmove;
     }
   }
   return 0;
 }
 
-int convertColMove(string move)
+/*=========================================================
+                                                        
+ Converts and checks if the column move is valid and returns it.
+                                                        
+=========================================================*/
+int convertColMove(string move, int maxCol)
 {
-
   if (move.length()==2||3)
   {
-
     if ((isalpha(move[0])) && (isdigit(move[1])))
     {
-
       int columnmove = stoi(move.substr(1));
+      if(columnmove > maxCol)
+      {
+        string newcol;
+        cout << "Invalid Column! Enter new move" << endl;
+        cin >> newcol;
+        return convertColMove(newcol,maxCol);
+      }
       return columnmove;
     }
   }
   return 0;
 }
 
-
+/*=========================================================
+                                                        
+ Sets the firstname of the player's name and return it.
+                                                        
+=========================================================*/
 string setfirstname(string fullname)
 {
   string firstname;
@@ -357,59 +519,65 @@ string setfirstname(string fullname)
     return firstname;
 }
 
-
+/*=========================================================
+                                                        
+ Prints out a name with correct capitalizations.
+                                                        
+=========================================================*/
 void formatName(string name)
-{
-  
-  for (int i =0; i <= name.length() -1;i++)
+{ 
+  for (int i = 0; i <= name.length() - 1;i++)
   {
-
-    if (i ==0)
+    if (i == 0)
     {
-
       putchar(toupper(name[i]));
     }
     else
     {
-
       putchar(tolower(name[i]));
+    }
+    if(isspace(name[i]))
+    {
+      putchar(toupper(name[i + 1]));
+      i += 1;
     }
   }
 }
 
-
+/*=========================================================
+                                                        
+ Checks if name only contains letters and spaces if not return false.
+                                                        
+=========================================================*/
 bool checkName(string name)
 {
-
-  for (int i= 0; i< name.length()-1; i++)
+  for (int i= 0; i< name.length(); i++)
   {
-
     if (!(isalpha(name[i]) || isspace(name[i])))
     {
-
       return false;
     }
   }
   return true;
 } 
 
-
+/*=========================================================
+                                                        
+ Prints the gameboard 
+                                                        
+=========================================================*/
 void drawBoard(int rows, int columns, string spaces[][15])
 {
-
 	cout << "    ";
 
 	for (int i = 0; i <= columns-1; i++)
   {
-
      if (i < 9)
      {
-
        cout << i +1 << "   ";
      }
      else
-    {
-       
+    {   
        cout << i +1 << "  ";
     }
   }
@@ -417,15 +585,13 @@ void drawBoard(int rows, int columns, string spaces[][15])
 
 	for (int i = 0; i < rows; i++) 
   {
-      cout << "   ";
-      
+      cout << "   ";  
       cout << endl;
 
       char alpha = i + 65;
       cout << "   ";
       for (int j=0; j<columns;j++)
       {
-
         cout << "---" << " ";
       }
       cout << endl;
@@ -441,22 +607,18 @@ void drawBoard(int rows, int columns, string spaces[][15])
      cout << "   ";
       for (int j =0 ; j < columns;j++)
       {
-
         cout << "---" << " ";
       }
 	   cout << endl;
      cout << "    ";
      for (int i = 0; i <= columns - 1; i++)
      {
-
      if (i < 9)
      {
-
        cout << i + 1 << "   ";
      }
      else
-    {
-       
+    {   
        cout << i + 1 << "  ";
     }
   }  
